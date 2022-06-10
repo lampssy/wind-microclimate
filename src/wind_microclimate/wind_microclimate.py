@@ -10,8 +10,8 @@ from post_proc.helpers import postproc_background
 
 
 def main():
-
     ################################# INPUT ###################################
+    
     input_xlsx = 'input.xlsx'
     hist_weather_data = 'weibull_weather.csv'
     csv_vr = 'VR.csv'
