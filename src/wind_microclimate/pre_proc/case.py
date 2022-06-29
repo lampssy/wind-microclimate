@@ -3,7 +3,7 @@ import pandas as pd
 from PyFoam.RunDictionary.ParameterFile import ParameterFile
 from logging import info, warning, error, exception
 
-from pre_proc import PreProc
+from pre_proc.pre_proc import PreProc
 
 
 class Case(PreProc):

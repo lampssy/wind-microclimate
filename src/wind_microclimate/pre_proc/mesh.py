@@ -3,10 +3,10 @@ from PyFoam.Applications.Runner import Runner
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from logging import info, warning, error, exception
 
-from ..post_proc import helpers
-from pre_proc import PreProc
+from post_proc import helpers
+import pre_proc.pre_proc as pre
 
-class Mesh(PreProc):
+class Mesh(pre.PreProc):
 
     def __init__(self, preproc_obj):
         self.__dict__ = preproc_obj.__dict__

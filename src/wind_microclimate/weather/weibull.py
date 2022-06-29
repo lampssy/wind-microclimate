@@ -6,7 +6,7 @@ from reliability.Other_functions import histogram
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from weather import WeatherData
+from weather.weather import WeatherData
 
 
 class WeibullWeatherData(WeatherData):

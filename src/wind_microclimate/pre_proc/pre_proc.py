@@ -2,9 +2,9 @@ import os
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from PyFoam.RunDictionary.BoundaryDict import BoundaryDict
 
-from mesh import Mesh
-from template import TemplateCaseLog
-from case import Case
+from pre_proc.mesh import Mesh
+from pre_proc.template import TemplateCaseLog
+from pre_proc.case import Case
 
 class PreProc:
 
