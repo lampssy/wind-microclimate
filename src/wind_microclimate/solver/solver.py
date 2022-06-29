@@ -21,9 +21,8 @@ class Solver:
         self.save_residuals = save_residuals
         if self.save_residuals:
             self.solver_args.insert(1, '--hardcopy')
-            self.residuals_dir = os.path.join(output_dir, 'residuals')
+            self.residuals_dir = output_dir / 'residuals'
             Path(self.residuals_dir).mkdir(parents=True, exist_ok=True)
-
 
     def calculate_cfd(self):
         if not self.calculated:
@@ -31,17 +30,14 @@ class Solver:
             self.set_iter()
             self.run_simulation()
 
-
     def run_simulation(self):
         PlotRunner(args=self.solver_args)
         if self.save_residuals:
             self.residuals_plot()
 
-
     def decompose(self):
         """ Check if case decomposed to provided number of processors, 
             then decompose if not """
-
         if len(self.case_obj.processorDirs()) != self.processors:
             if len(self.case_obj.processorDirs()) != 0:
                 subprocess.run(['reconstructPar', '-case', self.case_obj.name, 
@@ -54,7 +50,6 @@ class Solver:
             'controlDict'))
         conDict['endTime'] = self.iterations
         conDict.writeFile()
-
 
     def residuals_plot(self):
         # make sure image with residuals has been created

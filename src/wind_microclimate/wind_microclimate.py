@@ -1,4 +1,6 @@
+import sys
 import numpy as np
+from pathlib import Path
 
 from input.user_input import UserInput
 from weather.epw import EpwWeatherData
@@ -18,6 +20,18 @@ def main():
     csv_lawson = 'lawson.csv'
     output_dir = 'output'
 
+    project_dir = sys.argv[1]
+    
+    input_dir = project_dir / 'input'
+    output_dir = project_dir / 'output'
+
+    input_xlsx = input_dir / 'input.xlsx'
+    hist_weather_data = input_dir / 'weibull_weather.csv'
+
+    Path(project_dir / output_dir).mkdir(parents=True, exist_ok=True)
+    csv_vr = output_dir / 'VR' / 'VR.csv'
+    csv_lawson = output_dir / 'lawson' / 'lawson.csv'
+    
     inputs = UserInput(input_xlsx)
 
     angles = np.linspace(inputs.angle_start, inputs.angle_end, 
@@ -37,11 +51,11 @@ def main():
     #################### PRE-PROCESSING & CALCULATION #########################
 
     if inputs.run_cfd:
-        pre = PreProc(inputs.case)
+        pre = PreProc(input_dir / inputs.case)
         if inputs.convert_msh:
             pre.convert_mesh()
         if inputs.wind_profile == 'csv':
-            pre.setup_template_csv(inputs.csv_profile)
+            pre.setup_template_csv(input_dir / inputs.csv_profile)
         else:
             wtr = EpwWeatherData()
             pre.setup_template_log(inputs.rht_epw, inputs.rht_site, wtr.v_ref)

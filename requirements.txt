@@ -4,3 +4,4 @@ pandas==1.4.2
 pyepw==0.1
 PyFoam==2021.6
 scipy==1.7.2
+reliability==0.8.3

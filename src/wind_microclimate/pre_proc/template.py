@@ -3,7 +3,7 @@ from PyFoam.RunDictionary.ParameterFile import ParameterFile
 from scipy.integrate import quad
 from logging import info, warning, error, exception
 
-from pre_proc import PreProc
+from pre_proc.pre_proc import PreProc
 
 
 class TemplateCaseLog(PreProc):

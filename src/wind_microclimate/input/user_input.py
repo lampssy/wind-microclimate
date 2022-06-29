@@ -16,13 +16,11 @@ class UserInput:
         self.solver_input()
         self.post_proc_input()
 
-
     def basic_input(self):
         self.case = self.inputs.loc['case']
         self.angles = self.inputs.loc['wind_angles']
         self.angle_start = self.inputs.loc['wind_angle_start']
         self.angle_end = self.inputs.loc['wind_angle_end']
-
 
     def pre_proc_input(self):
         self.convert_msh = self.inputs.loc['convert_mesh']
@@ -33,15 +31,13 @@ class UserInput:
             self.rht_epw = self.inputs.loc['rht_epw']
             self.rht_site = self.inputs.loc['rht_site']
         else:
-            error(f'{self.wind_profile} wind profile not valid, available options are:',
-                '\ncsv\nlogarithmic')
-
+            error(f'{self.wind_profile} wind profile not valid, available',
+                  'options are:\ncsv\nlogarithmic')
 
     def solver_input(self):
         self.run_cfd = self.inputs.loc['run_cfd']
         self.proc = self.inputs.loc['processors']
         self.it = self.inputs.loc['iter']
-
 
     def post_proc_input(self):
         self.vr_calculate = self.inputs.loc['vr_calculate']
@@ -55,8 +51,11 @@ class UserInput:
             self.vr_surfaces = self.inputs.loc['vr_surfaces']
         if self.vr_receptors:
             self.receptors_csv = self.inputs.loc['receptor_coords']
-        if self.lawson_calculate or self.lawson_receptors:
+        if self.lawson_calculate or self.lawson_receptors or \
+                self.vr_calculate or self.vr_receptors:
             self.method = self.inputs.loc['method']
+            if self.method == 'weibull':
+                self.weibull_vref = self.inputs.loc['weibull_vref']
         if self.lawson_pictures:
             self.bld_of_interest = self.inputs.loc['bld_of_interest']
             self.other_bld = self.inputs.loc['other_bld']

@@ -3,7 +3,7 @@ import sys, glob
 import pandas as pd
 from logging import info, warning, error, exception
 
-from weather import WeatherData
+from weather.weather import WeatherData
 
 
 class EpwWeatherData(WeatherData):
