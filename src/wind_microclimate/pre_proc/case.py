@@ -1,55 +1,63 @@
-import os, math
-import pandas as pd
-from PyFoam.RunDictionary.ParameterFile import ParameterFile
-from logging import info, warning, error, exception
+import os, sys, math
+from abc import ABC, abstractmethod
+from PyFoam.RunDictionary.BoundaryDict import BoundaryDict
+from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
+from logging import info, error
 
-from pre_proc.pre_proc import PreProc
+from wind_microclimate.pre_proc.mesh import Mesh
 
 
-class Case(PreProc):
+class Case(ABC):
 
-    def __init__(self, preproc_obj, wind_profile, angle):
-        self.__dict__ = preproc_obj.__dict__
+    def __init__(self, case_path, angle=0):
+        self.case_path = case_path
+        self.foam_obj = SolutionDirectory(case_path, archive=None)
         self.angle = angle
-        self.case = f'{self.template_case}_{self.angle}'
-        self.wind_profile = wind_profile
-
-
+        self.fields = ['U', 'p', 'k', 'epsilon']
+        self.outlet_dict = {
+            10: ['side-s'],
+            80: ['side-s', 'side-w'],
+            100: ['side-w'],
+            170: ['side-w', 'side-n'],
+            190: ['side-n'],
+            260: ['side-n', 'side-e'],
+            280: ['side-e'],
+            350: ['side-e', 'side-s'],
+            360: ['side-s']
+            }
+        self.check_case()
+    
     def setup_case(self):
         """ Copy the template case and prepare it for calculation of current 
             wind direction. """
-
-        self.template_case.cloneCase(self.case)
         self.wind_vector = [-math.sin(self.angle/180. * math.pi), 
             -math.cos(self.angle/180. * math.pi)]
-        # custom csv wind profile setup
-        if self.wind_profile == 'csv':
-            self.write_vel_prof(self.csv_profile)
-        # logarithmic ABL wind profile setup
-        elif self.wind_profile == 'log':
-            self.set_dir()
+        self.set_wind()
         outlets = self.choose_outlet()
         info(f'Preparing case for {self.angle} deg wind direction...',
-            f'\nSetting patches: {outlets} to pressure outlet...'
+            f'\nSetting patches: {outlets} to pressure outlet...',
             f'\nFlow direction vector: {self.wind_vector}')
         for outlet in outlets:
             self.set_outlet(outlet)
 
-
-    def set_dir(self):
-        """ Set wind direction vector """
-
-        wind_dir = ParameterFile(os.path.join(self.case, '0', 'include', 
-            'windDirection'))
-        wind_dir.replaceParameter('flowDir', f'({self.wind_vector[0]}',
-            f'{self.wind_vector[1]} 0)')
-
+    def prepare_mesh(self, msh_dir):
+        """ Execute all mesh preparation activities - cleaning, converting msh file, 
+        setting default boundary types and renumbering (reordering cells for 
+        computational speed optimization) """
+        self.mesh = Mesh(msh_dir, self.case_path)
+        self.mesh.clean_msh()
+        self.mesh.convert_msh()
+        self.set_boundaries()
+        self.read_bc()
+        self.mesh.renumber_mesh()
+        # write boundary conditions from scratch as they get affected during 
+        # renumbering and a 'template case' syntax is disrupted
+        self.write_bc()
 
     def set_outlet(self, outlet_patch):
         """ Assign outlet BC to a given patch for all fields provided """
-
         for field in self.fields:
-            path = os.path.join(self.case, '0', field)
+            path = os.path.join(self.case_path, '0', field)
             lineNr = 0
             with open(path) as f:
                 i = 0
@@ -63,21 +71,56 @@ class Case(PreProc):
             with open(path, 'w') as mf:
                 mf.writelines(lineList)
 
-
     def choose_outlet(self):
         """ Choose outlet boundary from the dictionary based on a given angle"""
-
         for key in sorted(self.outlet_dict):
             if self.angle <= key:
                 return self.outlet_dict[key]
 
+    def read_bc(self):
+        """ Read boundary condition files stored in "0" directory """
+        fields = next(os.walk(os.path.join(self.case_path, '0')))[2]
+        self.fields_dict = {}
+        for field in fields:
+            with open(os.path.join(self.case_path, '0', field), 'r') as f:
+                self.fields_dict[field] = f.readlines()
 
-    def write_vel_prof(self, csv_path):
-        """ Calculate the velocity profile based on given wind direction 
-            and write to csv """
+    def write_bc(self):
+        """ Write boundary condition files to "0" directory """
+        fields = next(os.walk(os.path.join(self.case_path, '0')))[2]
+        for field in fields:
+            with open(os.path.join(self.case_path, '0', field), 'w') as f:
+                f.writelines(self.fields_dict[field])
 
-        cols = ['z', 'vx', 'vy', 'vz']
-        df_vel = pd.read_csv(csv_path, header=None, names=cols)
-        df_vel['vx'] = df_vel['vx'] * self.wind_vector[0]
-        df_vel['vy'] = df_vel['vy'] * self.wind_vector[1]
-        df_vel.to_csv(os.path.join(self.case, csv_path), header=False, index=False)
+    def set_boundaries(self):
+        """ Set standard boundary types: 'sky' to symmetry; 'side-n', 'side-e',
+            'side-s', 'side-w' to patches; remaining to wall. """
+        boundary_dict = BoundaryDict(self.case_path)
+        patches = boundary_dict.patches()
+        boundary_dict['sky']['type'] = 'symmetry'
+        boundary_dict['sky']['inGroups'] = ['symmetry']
+        for patch in patches:
+            if patch != 'side-n' and patch != 'side-e' and patch != 'side-s' \
+                and patch != 'side-w' and patch != 'sky':
+                boundary_dict[patch]['type'] = 'wall'
+                boundary_dict[patch]['inGroups'] = ['wall']
+        boundary_dict.writeFile()
+
+    def check_case(self):
+        """ Check whether this is a valid case directory by looking for
+            the system and constant directories and the controlDict file """
+        if self.foam_obj.isValid() == False:
+            error(f'There is no "constant" directory in {self.case_path}')
+            sys.exit()
+
+    @abstractmethod
+    def clone(self):
+        pass
+
+    @abstractmethod
+    def set_wind(self):
+        pass
+
+    @abstractmethod
+    def setup_template(self):
+        pass

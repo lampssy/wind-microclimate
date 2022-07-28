@@ -1,21 +1,4 @@
-import os, subprocess, multiprocessing, re, glob
-import pandas as pd
-
-
-def merge_vr(case, path_merged):
-    """ Merge csv files with VR results above individual surfaces into one 
-        csv file """
-
-    csv_list = glob.glob(os.path.join(case, '_VR*.csv'))
-    dfs = [pd.read_csv(csv) for csv in csv_list]
-    names = [csv.strip('_VR.csv') for csv in csv_list]
-    for df, name in zip(dfs, names):
-        df['Name'] = name
-    df_concat = pd.concat(dfs)
-    df_concat.to_csv(path_merged, index=False)
-    # clean partial VR results in case folder
-    for csv in csv_list:
-        os.remove(csv)
+import os, subprocess, multiprocessing, re
 
 
 def postproc_background(case_obj, it, path_vr, vr_pictures=False, 

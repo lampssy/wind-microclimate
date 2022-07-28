@@ -1,6 +1,6 @@
 import os, sys, glob
 import pandas as pd
-from logging import info, warning, error, exception
+from logging import error
 from reliability.Fitters import Fit_Weibull_2P
 from reliability.Other_functions import histogram
 import matplotlib.pyplot as plt
@@ -18,11 +18,9 @@ class WeibullWeatherData(WeatherData):
         self.plot_dir = plot_dir
         self.date_col = 'datetime'
 
-
     def prepare_weibull(self):
         """ Read csv file with weather data to dataframe, convert mph to m/s, 
             group by seasons and apply write_weibull per each group """
-
         data = pd.read_csv(self.data_file, usecols=[self.date_col, self.ws_col, 
             self.wd_col])
         # fill NaNs with values from previous/next rows
@@ -42,11 +40,9 @@ class WeibullWeatherData(WeatherData):
         # annual Weibull parameters
         self.write_weibull(df_angles, 'annual')
 
-
     def write_weibull(self, gb, season):
         """ Group the dataframe by wind angle, apply weibull_params per each 
             group and write parameters to csv file """
-
         # n of weather data records per season
         n_records = gb['Direction'].count()
         gb_angle = gb.groupby('Direction')
@@ -57,12 +53,10 @@ class WeibullWeatherData(WeatherData):
         self.df_weibull = pd.DataFrame(params, columns=['Direction', 'p', 'c', 'k'])
         self.df_weibull.to_csv('weibull_{0}.csv'.format(season), index=False)
 
-
     def weibull_params(self, wind_speeds, n_records, group, season):
         """ Fit Weibull distribution to given wind speed data and save the PDF 
             fnction to a file (plot=True); return wind angle, wind angle 
             probability and Weibull shape and scale parameters """
-
         # probability of wind direction
         wind_p = len(wind_speeds)/n_records
         # fit Weibull dist to wind speed data
@@ -72,11 +66,9 @@ class WeibullWeatherData(WeatherData):
             self.plot_weibull(wind_speeds, season, group)
         return [group, wind_p, self.wb.alpha, self.wb.beta]
 
-
     def find_weibull(self):
         """ Return names of the csv files with Weibull parameters in the current 
             directory """
-
         weibull_csv = glob.glob('weibull*.csv')
         if len(weibull_csv) == 0:
             sys.exit(error('\nCSV files with Weibull factors not found\n'))
@@ -92,4 +84,3 @@ class WeibullWeatherData(WeatherData):
         plt.legend()
         plt.savefig(os.path.join(self.plot_dir, f'{season}-{group}-deg.png'))
         plt.close()
-        

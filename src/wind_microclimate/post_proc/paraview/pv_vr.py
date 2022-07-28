@@ -1,7 +1,7 @@
 import os, sys, fnmatch
 from paraview.simple import *
-from pv_utilities import GroundPatch, Probe, VrColorbar, read_pv_settings, \
-    read_receptors, create_vr
+from pv_helpers import GroundPatch, Probe, VrColorbar 
+from pv_helpers import read_pv_settings, read_receptors, create_vr
 
 
 # manual settings

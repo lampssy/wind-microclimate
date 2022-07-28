@@ -1,7 +1,6 @@
 import sys, os
 from paraview.simple import *
-from pv_utilities import BuildingPatch, Point, Text, LawsonColorbar, \
-    read_pv_settings, read_receptors
+from pv_helpers import BuildingPatch, LawsonColorbar, read_pv_settings
 
 
 # manual settings

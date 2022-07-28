@@ -1,7 +1,7 @@
 from pyepw.epw import EPW
 import sys, glob
 import pandas as pd
-from logging import info, warning, error, exception
+from logging import error, exception
 
 from weather.weather import WeatherData
 
@@ -12,11 +12,9 @@ class EpwWeatherData(WeatherData):
         data_file = self.find_epw()
         self.v_ref = self.mean_ws_epw()
         super().__init__(data_file)
-    
 
     def find_epw(self):
         """ Return name of the epw file in the current directory """
-
         epw_files = glob.glob('*.epw')
         if len(epw_files) == 0:
             sys.exit(error('\nThere is no EPW file in this directory\n'))
@@ -26,10 +24,8 @@ class EpwWeatherData(WeatherData):
         else:
             self.data_file = epw_files[0]
 
-
     def epw_to_df(self):
         """ Return dataframe with wind speeds and directions from the epw file """
-
         epw = EPW()
         df_list = []
         try:
@@ -43,7 +39,6 @@ class EpwWeatherData(WeatherData):
         except FileNotFoundError:
             exception(f'\n{self.data_file} file not found\n')
             sys.exit()
-
 
     def mean_ws_epw(self):
         epw = EPW()

@@ -9,20 +9,19 @@ from logging import warning
 
 class Solver:
 
-    def __init__(self, case_obj, output_dir, processors, iterations, 
-                 save_residuals=False):
-        self.case_obj = case_obj
+    def __init__(self, case, processors, iterations, save_residuals=False):
+        self.case = case
         self.processors = processors
         self.iterations = iterations
         self.calculated = self.is_calculated()
         self.solver_args = [f'--procnr={self.processors}', '--no-pickled-file',
                         '--no-continuity', '--non-persist', 'simpleFoam', 
-                        '-case', self.case_obj.name]
+                        '-case', self.case.case_path]
         self.save_residuals = save_residuals
         if self.save_residuals:
             self.solver_args.insert(1, '--hardcopy')
-            self.residuals_dir = output_dir / 'residuals'
-            Path(self.residuals_dir).mkdir(parents=True, exist_ok=True)
+            self.resid_dir = os.path.join(os.path.dirname(self.case.case_path),
+                                          'residuals')
 
     def calculate_cfd(self):
         if not self.calculated:
@@ -38,33 +37,32 @@ class Solver:
     def decompose(self):
         """ Check if case decomposed to provided number of processors, 
             then decompose if not """
-        if len(self.case_obj.processorDirs()) != self.processors:
-            if len(self.case_obj.processorDirs()) != 0:
-                subprocess.run(['reconstructPar', '-case', self.case_obj.name, 
+        if self.case.foam_obj.nrProcs() != self.processors:
+            if self.case.foam_obj.nrProcs() != 0:
+                subprocess.run(['reconstructPar', '-case', self.case.case_path, 
                     '-latestTime'])
-            Decomposer(args=[self.case_obj.name, self.processors, '--clear'])
+            Decomposer(args=[self.case.case_path, self.processors, '--clear'])
 
 
     def set_iter(self):
-        conDict = ParsedParameterFile(os.path.join(self.case_obj.name, 'system', 
+        conDict = ParsedParameterFile(os.path.join(self.case.case_path, 'system', 
             'controlDict'))
         conDict['endTime'] = self.iterations
         conDict.writeFile()
 
     def residuals_plot(self):
+        Path(self.resid_dir).mkdir(parents=True, exist_ok=True)
         # make sure image with residuals has been created
         time.sleep(2)
         try:
             # PNG image of residuals
-            subprocess.run(['mv', 'linear.png', self.residuals_dir])
+            subprocess.run(['mv', 'linear.png', self.resid_dir])
         except Exception:
             warning('Image with residuals was not generated')
 
     
     def is_calculated(self):
-        if not os.path.exists(os.path.join(self.case_obj.name, str(self.iterations))) \
-                and not os.path.exists(os.path.join(self.case_obj.name, 
-                'processor0', str(self.iterations))):
+        if self.case.foam_obj.getLast() != self.iterations:
             return False
         else:
             return True

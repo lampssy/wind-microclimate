@@ -1,4 +1,4 @@
-import json
+import json, sys
 import pandas as pd
 from logging import info, warning, error, exception
 
@@ -33,6 +33,7 @@ class UserInput:
         else:
             error(f'{self.wind_profile} wind profile not valid, available',
                   'options are:\ncsv\nlogarithmic')
+            sys.exit()
 
     def solver_input(self):
         self.run_cfd = self.inputs.loc['run_cfd']
@@ -54,6 +55,10 @@ class UserInput:
         if self.lawson_calculate or self.lawson_receptors or \
                 self.vr_calculate or self.vr_receptors:
             self.method = self.inputs.loc['method']
+            if self.method != 'epw' or self.method != 'weibull':
+                error(f'{self.method} method is not valid for wind',
+                'microclimate calculation')
+                sys.exit()
             if self.method == 'weibull':
                 self.weibull_vref = self.inputs.loc['weibull_vref']
         if self.lawson_pictures:

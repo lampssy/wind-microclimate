@@ -8,10 +8,8 @@ class WeatherData:
         self.ws_col = 'windspeed'
         self.wd_col = 'winddir'
     
-    
     def group_wind_data(self, df_wind, angles, wd_col):
         """ Assign wind angle group to each record in weather data """
-
         interval = angles[1] - angles[0]
         df_wind['Direction'] = 0
         for angle in angles:
@@ -20,10 +18,8 @@ class WeatherData:
             df_wind.loc[mask_angle, 'Direction'] = angle
         return df_wind
 
-
     def group_seasons(self, df_wind, date_col):
         """ Assign season to each record in weather data """
-
         df_wind[date_col] = pd.to_datetime(df_wind[date_col])
         df_wind[date_col] = df_wind[date_col].apply(lambda x: x.timetuple().tm_yday)
         # days of year
