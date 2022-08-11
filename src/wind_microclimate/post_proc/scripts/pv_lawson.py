@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, logging
 from paraview.simple import *
 from pv_helpers import BuildingPatch, LawsonColorbar, read_pv_settings
 
@@ -7,19 +7,26 @@ from pv_helpers import BuildingPatch, LawsonColorbar, read_pv_settings
 colorbar_disp = False
 camera_scale = 200
 
-output_name = sys.argv[1]
-settings = read_pv_settings()
+case = sys.argv[1]
+lawson_csv = sys.argv[2]
+pv_input = sys.argv[3]
+logfile = sys.argv[4]
+
+# logging config
+logging.basicConfig(filename=logfile, level=logging.INFO,
+                    format='%(asctime)s:%(levelname)s:%(message)s')
+
+# read paraview input from file
+settings = read_pv_settings(pv_input)
 
 # assign inputs to local variables
-case = settings['case']
 bld_of_interest = settings['bld_of_interest'].split()
 other_bld = settings['other_bld'].split()
 camera_position = [int(settings['x_camera']), int(settings['y_camera']), 500]
 z_ref = settings['h_ref']
 
-# names of output files
-lawson_csv = output_name + '.csv'
-lawson_png = output_name + '.png'
+# image file
+lawson_png = lawson_csv.replace('.csv', '.png')
 
 paraview.simple._DisableFirstRenderCameraReset()
 renderView1 = FindViewOrCreate('RenderView1', viewtype='RenderView')
@@ -62,9 +69,10 @@ for p in patches:
     p.display2.LineWidth = 1.0
 
 if not os.path.exists(lawson_csv):
-    sys.exit('\nERROR: Could not find a CSV file with Lawson class data\n')
+    print(lawson_csv)
+    sys.exit(logging.error('Could not find a CSV file with Lawson class data'))
 
-print('Generating colour map of wind comfort categories...')
+logging.info('Generating colour map of wind comfort categories...')
 # reads CSV file with nodal wind class data
 reader = CSVReader(FileName=['%s' % (lawson_csv)])
 tableToPoints1 = TableToPoints(Input=reader)
@@ -85,10 +93,7 @@ delaunay2D1Display.LookupTable = colorbar.lut
 delaunay2D1Display.OSPRayScaleArray = 'Class'
 delaunay2D1Display.SetScalarBarVisibility(renderView1, colorbar_disp)
 
-# creates RESULTS directory if not exists
-#Path('RESULTS').mkdir(parents=True, exist_ok=True)
-png_path = 'RESULTS/%s' % (lawson_png)
-SaveScreenshot(png_path, renderView1, ImageResolution=[2920, 1848])
+SaveScreenshot(lawson_png, renderView1, ImageResolution=[2920, 1848])
 
 # hides colour map
 Hide(delaunay2D1, renderView1)

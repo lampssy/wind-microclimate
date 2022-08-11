@@ -37,6 +37,7 @@ class Solver:
     def decompose(self):
         """ Check if case decomposed to provided number of processors, 
             then decompose if not """
+        print(self.processors)
         if self.case.foam_obj.nrProcs() != self.processors:
             if self.case.foam_obj.nrProcs() != 0:
                 subprocess.run(['reconstructPar', '-case', self.case.case_path, 
@@ -56,7 +57,8 @@ class Solver:
         time.sleep(2)
         try:
             # PNG image of residuals
-            subprocess.run(['mv', 'linear.png', self.resid_dir])
+            subprocess.run(['mv', 'linear.png', os.path.join(self.resid_dir,
+                f'residuals_{self.case.angle}.png')])
         except Exception:
             warning('Image with residuals was not generated')
 
@@ -70,5 +72,6 @@ class Solver:
     def check_version(self):
         self.version = FoamInformation.foamVersionString()
         if not (5 <= float(self.version) <= 8):
-            warning('This application has been tested with versions 5.0 - 8.0,',
-                f'your version (OpenFOAM {self.version}) may not be compatible')
+            warning(f'This application has been tested with versions 5.0 - 8.0, \
+                    your version (OpenFOAM {self.version}) may not be \
+                    compatible')

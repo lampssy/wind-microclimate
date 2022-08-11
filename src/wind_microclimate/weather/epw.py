@@ -19,8 +19,8 @@ class EpwWeatherData(WeatherData):
         if len(epw_files) == 0:
             sys.exit(error('\nThere is no EPW file in this directory\n'))
         elif len(epw_files) > 1:
-            sys.exit(error('\nThere is more than one EPW file in this directory,',
-                'please remove unnecessary files\n'))
+            sys.exit(error('\nThere is more than one EPW file in this directory, \
+                           please remove unnecessary files\n'))
         else:
             self.data_file = epw_files[0]
 

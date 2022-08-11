@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 import string, os, subprocess, glob
 import numpy as np
 import pandas as pd
@@ -6,14 +7,15 @@ import pandas as pd
 
 class Lawson(ABC):
 
-    def __init__(self, case, angles, weather, csv_vr, csv_lawson, receptors):
-        self.case = case
+    def __init__(self, case_dir, case, angles, csv_vr, csv_lawson,
+                 receptors):
+        self.case = os.path.join(case_dir, case)
         self.angles = angles
-        self.weather = weather
-        self.csv_vr = csv_vr
+        self.csv_vr = str(csv_vr)
         self.csv_vr_receptors = f'{self.csv_vr.rstrip(".csv")}_receptors.csv'
-        self.csv_lawson = csv_lawson
+        self.csv_lawson = str(csv_lawson)
         self.receptors = receptors
+        self.p_exceed = np.zeros((2, 2)) # hack
 
     def calculate(self, receptors=False):
         """ Read VR data and initiate calculation of wind microclimate results 
@@ -26,8 +28,9 @@ class Lawson(ABC):
         else:
             csv_vr = self.csv_vr
         # TO DO: check if dataframe is optimal for speed in this case
-        self.dfs_vr = [pd.read_csv(os.path.join(f'{self.case}_{angle}', csv_vr), 
-            header=0, dtype=float) for angle in self.angles]
+        self.dfs_vr = [pd.read_csv(csv_vr.replace
+                       ('.csv', f'_{os.path.split(self.case)[1]}_{angle}.csv'),
+                       header=0) for angle in self.angles]
         # TO DO: check if this is efficient
         self.vr_gens = [(vr for vr in df_vr['VR'].tolist()) for df_vr in self.dfs_vr]
 
@@ -46,6 +49,7 @@ class Lawson(ABC):
                                     self.dfs_vr[0]['Points:0'].to_numpy(), 
                                     self.dfs_vr[0]['Points:1'].to_numpy(), 
                                     self.dfs_vr[0]['Points:2'].to_numpy())).T
+        Path(os.path.dirname(csv_lawson)).mkdir(parents=True, exist_ok=True)
         if not self.receptors:
             fields = 'Class,Points:0,Points:1,Points:2'
             np.savetxt(csv_lawson, self.points_class, delimiter=',', 
@@ -88,10 +92,13 @@ class Lawson(ABC):
         np.savetxt(csv_lawson_receptors, receptor_table, delimiter=',', 
             fmt=fields_fmt, header=fields, comments='')
 
-    def colour_map(self):
+    def colour_map(self, pv_input):
+        lawson_script = str(os.path.join(os.path.split(__file__)[0], 'scripts',
+                            'pv_lawson.py'))
         lawson_results_list = glob.glob(f'{self.csv_lawson.rstrip(".csv")}*.csv')
         for lawson_results in lawson_results_list:
-            subprocess.run(['pvpython', 'pv_lawson.py', lawson_results])
+            subprocess.run(['pvpython', lawson_script, self.case,  lawson_results,
+                            pv_input])
 
     @abstractmethod
     def wind_microclimate(self):
@@ -117,25 +124,30 @@ class Lawson(ABC):
     def thresh_freq_values(self):
         pass
 
-    @property
-    @abstractmethod
-    def p_exceed(self):
-        pass
-
 
 class LawsonLDDC(Lawson):
 
-    def __init__(self, case, angles, weather, csv_vr, csv_lawson, receptors):
-        super().__init__(case, angles, weather, csv_vr, csv_lawson, receptors)
-        self.thresh_ws = {
+    def __init__(self, case_dir, case, angles, csv_vr, csv_lawson, receptors):
+        super().__init__(case_dir, case, angles, csv_vr, csv_lawson, receptors)
+
+    @property
+    def thresh_ws(self):
+        return {
             'Comfort': [2.5, 4, 6, 8], 
             'Safety': [15]
             }
-        self.thresh_freq = {
+
+    @property
+    def thresh_freq(self):
+        return {
             'Comfort': [0.05, 0.05, 0.05, 0.05], 
             'Safety': [0.00022]
             }
-        self.thresh_ws_values = sorted(sum(self.thresh_ws.values(), []),
-            reverse=True)
-        self.thresh_freq_values = sorted(sum(self.thresh_freq.values(), []), 
-            reverse=True)
+
+    @property
+    def thresh_ws_values(self):
+        return sorted(sum(self.thresh_ws.values(), []), reverse=True)
+
+    @property
+    def thresh_freq_values(self):
+        return sorted(sum(self.thresh_freq.values(), []), reverse=True)

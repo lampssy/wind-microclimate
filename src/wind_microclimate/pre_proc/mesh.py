@@ -20,13 +20,11 @@ class Mesh:
             error('There is no msh file in project directory')
             sys.exit()
         elif len(msh_list) > 1:
-            if any('_clean' in msh for msh in msh_list):
-                info('Mesh already cleaned')
-                self.cleaned = True
-            else:
-                error('There is more than one msh file in project directory')
-                sys.exit()
+            error('There is more than one msh file in project directory')
+            sys.exit()
         else:
+            if '_clean' in msh_list[0]:
+                self.cleaned = True
             self.msh_file = msh_list[0]
 
     def clean_msh(self, forbid_chars = ['[', ']']):
@@ -44,12 +42,14 @@ class Mesh:
         with open(msh_clean, 'w') as f_new:
             f_new.writelines(new_list)
         os.remove(self.msh_file)
+        self.msh_file = msh_clean
 
     def convert_msh(self):
         """ Convert the Fluent's msh file to OpenFOAM files and run mesh check 
             in the background"""
         info('Converting the mesh from Fluent to OpenFOAM...')
-        Runner(args=['fluent3DMeshToFoam', '-case', self.case_path, '*.msh'])
+        Runner(args=['fluent3DMeshToFoam', '-case', self.case_path,
+                     self.msh_file])
         checkMesh = [['checkMesh', '-case', self.case_path]]
         p = multiprocessing.Process(target=helpers.init_sbp, args=(checkMesh, 
             self.case_path, ),)

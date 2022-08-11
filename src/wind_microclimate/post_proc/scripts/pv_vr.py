@@ -1,4 +1,5 @@
 import os, sys, fnmatch
+import logging
 from paraview.simple import *
 from pv_helpers import GroundPatch, Probe, VrColorbar 
 from pv_helpers import read_pv_settings, read_receptors, create_vr
@@ -8,10 +9,19 @@ from pv_helpers import read_pv_settings, read_receptors, create_vr
 colorbar_disp = False
 camera_scale = 200
 
+#arguments passed while executing the script
 case = sys.argv[1]
 v_ref = sys.argv[2]
 output_dir = sys.argv[3]
-settings = read_pv_settings()
+pv_input = sys.argv[4]
+logfile = sys.argv[5]
+
+# logging config
+logging.basicConfig(filename=logfile, level=logging.INFO,
+                    format='%(asctime)s:%(levelname)s:%(message)s')
+
+# read paraview input from file
+settings = read_pv_settings(pv_input)
 
 # assign inputs to local variables
 vr_pictures = settings['vr_pictures']
@@ -20,7 +30,7 @@ vr_receptors = settings['vr_receptors']
 camera_position = [int(settings['x_camera']), int(settings['y_camera']), 500]
 z_ref = settings['h_ref']
 receptors_file = settings['receptor_coords']
-png_path = '%s/VR_%s.png' % (output_dir, case)
+png_path = '%s/VR_%s.png' % (output_dir, os.path.split(case)[1])
 
 vtk_dir = os.listdir('%s/VTK/' % (case))
 pattern = '*.vtk'
@@ -34,8 +44,8 @@ vtk = sorted(vtks, reverse = True)[0]
 vtk_path = '%s/VTK/%s' % (case, vtk)
 
 if vr_pictures:
-    ground_patches = settings['ground_patches'].split()
-    print('{0} - generating VR contours...'.format(case))
+    ground_patches = settings['vr_surfaces'].split()
+    logging.info('{0} - generating VR contours...'.format(os.path.split(case)[1]))
     patches = []
     # creates list with Patch objects in ParaView
     for name in ground_patches:
@@ -85,8 +95,8 @@ if vr_pictures:
     SaveScreenshot(png_path, renderView1, ImageResolution=[2920, 1848])
 
 if vr_receptors:
-    print('{0} - exporting VR data in receptor locations to CSV file...'
-        .format(case))
+    logging.info('{0} - exporting VR data in receptor locations to CSV file...'
+        .format(os.path.split(case)[1]))
     # reads file with receptor coordinates into a 2D list
     receptors = read_receptors(receptors_file)
 

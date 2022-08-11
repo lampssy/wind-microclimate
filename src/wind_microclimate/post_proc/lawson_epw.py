@@ -6,8 +6,9 @@ from post_proc.lawson import LawsonLDDC
 
 class LawsonEpw(LawsonLDDC):
 
-    def __init__(self, case, angles, weather, csv_vr, csv_lawson, receptors):
-        super().__init__(case, angles, weather, csv_vr, csv_lawson, receptors)
+    def __init__(self, case_dir, case, angles, weather, csv_vr, csv_lawson, receptors):
+        super().__init__(case_dir, case, angles, csv_vr, csv_lawson, receptors)
+        self.weather = weather
 
     def wind_microclimate(self, safety=True):
         """ Read VR results and weather data, then run wind comfort calculation. """

@@ -168,8 +168,8 @@ def create_vr(vtk_path, v_ref):
 
 
 # reads paraview settings (camera, patch names etc.) from file
-def read_pv_settings():
-    with open('paraview-settings.txt') as settings:
+def read_pv_settings(txt_path):
+    with open(txt_path) as settings:
         return json.load(settings)
 
 

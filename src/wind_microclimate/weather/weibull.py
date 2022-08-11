@@ -11,9 +11,12 @@ from weather.weather import WeatherData
 
 class WeibullWeatherData(WeatherData):
 
-    def __init__(self, data_file, weibull_vref, plot=False, plot_dir='weibull_fit'):
+    def __init__(self, data_file, weibull_vref, angles, output_dir, plot=False,
+                 plot_dir='weibull_fit'):
         super().__init__(data_file)
         self.v_ref = weibull_vref
+        self.angles = angles
+        self.output_dir = Path(output_dir)
         self.plot = plot
         self.plot_dir = plot_dir
         self.date_col = 'datetime'
@@ -51,7 +54,8 @@ class WeibullWeatherData(WeatherData):
         gb_angle.apply(lambda x: params.append(self.weibull_params(
             x['windspeed'].values.tolist(), n_records, x.name, season)))
         self.df_weibull = pd.DataFrame(params, columns=['Direction', 'p', 'c', 'k'])
-        self.df_weibull.to_csv('weibull_{0}.csv'.format(season), index=False)
+        self.df_weibull.to_csv(self.output_dir / 'weibull_{0}.csv'.format(season),
+                               index=False)
 
     def weibull_params(self, wind_speeds, n_records, group, season):
         """ Fit Weibull distribution to given wind speed data and save the PDF 
@@ -66,12 +70,12 @@ class WeibullWeatherData(WeatherData):
             self.plot_weibull(wind_speeds, season, group)
         return [group, wind_p, self.wb.alpha, self.wb.beta]
 
-    def find_weibull(self):
-        """ Return names of the csv files with Weibull parameters in the current 
-            directory """
+    def find_weibull(self, weibull_dir='.'):
+        """ Return names of the csv files with Weibull parameters in the given 
+            directory (current directory as a default). """
         weibull_csv = glob.glob('weibull*.csv')
         if len(weibull_csv) == 0:
-            sys.exit(error('\nCSV files with Weibull factors not found\n'))
+            sys.exit(error('CSV files with Weibull factors not found'))
         else:
             return weibull_csv
 

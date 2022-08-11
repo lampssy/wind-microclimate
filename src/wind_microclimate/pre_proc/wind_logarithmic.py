@@ -1,5 +1,7 @@
 import os, math
 from pathlib import Path
+
+
 from PyFoam.RunDictionary.ParameterFile import ParameterFile
 from scipy.integrate import quad
 from logging import info
@@ -18,12 +20,12 @@ class WindLogarithmic(Case):
 
     def setup_template(self, h_max=500):
         """ Prepare the template case with logarithmic wind profile setup """
-        info(f'Yearly average wind speed from weather file is:', 
-            f'{str(round(self.vref_epw, 2))} m/s')
+        info(f'Yearly average wind speed from weather file is: \
+             {str(round(self.vref_epw, 2))} m/s')
         # wind profile scaling (from measurement station to site location)
         self.vref_site = self.calc_vref(h_max=h_max)
-        info(f'Reference velocity used for applying the atmospheric wind profile',
-             f'is: {str(round(self.vref_site, 2))} m/s')
+        info(f'Reference velocity used for applying the atmospheric wind profile \
+             is: {str(round(self.vref_site, 2))} m/s')
         # write text file with wind profile parameters for site location
         self.write_profile_params()
         # sets wind profile inputs
@@ -75,9 +77,6 @@ class WindLogarithmic(Case):
         wind_dir.replaceParameter('flowDir', f'({self.wind_vector[0]}',
             f'{self.wind_vector[1]} 0)')
 
-    def clone(self, clone_dir, angle):
-        clone_path = Path(clone_dir, os.path.split(self.case_path)[1]
-                          + f'_{angle}')
-        self.foam_obj.cloneCase(clone_path)
+    def clone(self, clone_path, angle):
         return WindLogarithmic(clone_path, self.rht_epw, self.rht_site,
                                self.vref_epw, angle=angle)

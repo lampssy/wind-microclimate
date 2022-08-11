@@ -1,10 +1,11 @@
 import os, sys, math
+from pathlib import Path
 from abc import ABC, abstractmethod
 from PyFoam.RunDictionary.BoundaryDict import BoundaryDict
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from logging import info, error
 
-from wind_microclimate.pre_proc.mesh import Mesh
+from pre_proc.mesh import Mesh
 
 
 class Case(ABC):
@@ -34,9 +35,9 @@ class Case(ABC):
             -math.cos(self.angle/180. * math.pi)]
         self.set_wind()
         outlets = self.choose_outlet()
-        info(f'Preparing case for {self.angle} deg wind direction...',
-            f'\nSetting patches: {outlets} to pressure outlet...',
-            f'\nFlow direction vector: {self.wind_vector}')
+        info(f'Preparing case for {self.angle} deg wind direction... \
+            \nSetting patches: {outlets} to pressure outlet... \
+            \nFlow direction vector: {self.wind_vector}')
         for outlet in outlets:
             self.set_outlet(outlet)
 
@@ -45,7 +46,10 @@ class Case(ABC):
         setting default boundary types and renumbering (reordering cells for 
         computational speed optimization) """
         self.mesh = Mesh(msh_dir, self.case_path)
-        self.mesh.clean_msh()
+        if self.mesh.cleaned:
+            info('Mesh already cleaned')
+        else:
+            self.mesh.clean_msh()
         self.mesh.convert_msh()
         self.set_boundaries()
         self.read_bc()
@@ -113,8 +117,21 @@ class Case(ABC):
             error(f'There is no "constant" directory in {self.case_path}')
             sys.exit()
 
+    def clone(self, clone_dir, angle):
+        """ Clone case into clone_dir and return the resultant Case object.
+            Skip cloning if such path exists and is a valid case directory """
+        clone_path = str(Path(clone_dir, os.path.split(self.case_path)[1]
+                          + f'_{angle}'))
+        if not os.path.exists(clone_path) \
+                or (os.path.exists(clone_path) \
+                    and not SolutionDirectory(clone_path).isValid()):
+            info(f'Creating case {clone_path}...')
+            Path(clone_path).mkdir(parents=True, exist_ok=True)
+            self.foam_obj.cloneCase(clone_path)
+        return self.return_clone(clone_path, angle)
+
     @abstractmethod
-    def clone(self):
+    def return_clone(clone_path, angle):
         pass
 
     @abstractmethod
