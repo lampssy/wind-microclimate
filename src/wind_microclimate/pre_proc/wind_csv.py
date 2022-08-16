@@ -6,9 +6,10 @@ from pre_proc.case import Case
 
 class WindCSV(Case):
     
-    def __init__(self, case_path: str, csv_path: str, angle=0):
+    def __init__(self, case_path: str, csv_path: str, v_ref, angle=0):
         super().__init__(case_path, angle=angle)
         self.csv_path = csv_path
+        self.v_ref = v_ref
 
     def set_wind(self):
         """ Calculate velocity profile based on thes given wind direction
@@ -24,7 +25,7 @@ class WindCSV(Case):
                       header=False, index=False)
 
     def return_clone(self, clone_path, angle):
-        return WindCSV(clone_path, self.csv_path, angle=angle)
+        return WindCSV(clone_path, self.csv_path, self.v_ref, angle=angle)
 
     def setup_template(self):
         pass

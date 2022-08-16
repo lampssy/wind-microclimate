@@ -38,7 +38,6 @@ class VR:
         """ Merge csv files with VR results above individual surfaces into one
             csv file """
         csv_list = glob.glob(os.path.join(case, '_VR*.csv'))
-        print(case)
         dfs = [pd.read_csv(csv) for csv in csv_list]
         names = [os.path.split(csv.strip('_VR.csv'))[1] for csv in csv_list]
         for df, name in zip(dfs, names):

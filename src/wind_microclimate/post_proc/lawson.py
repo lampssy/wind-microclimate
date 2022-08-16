@@ -31,9 +31,6 @@ class Lawson(ABC):
         self.dfs_vr = [pd.read_csv(csv_vr.replace
                        ('.csv', f'_{os.path.split(self.case)[1]}_{angle}.csv'),
                        header=0) for angle in self.angles]
-        # TO DO: check if this is efficient
-        self.vr_gens = [(vr for vr in df_vr['VR'].tolist()) for df_vr in self.dfs_vr]
-
         self.wind_microclimate()
 
     def calculate_classes(self, csv_lawson):
@@ -92,13 +89,13 @@ class Lawson(ABC):
         np.savetxt(csv_lawson_receptors, receptor_table, delimiter=',', 
             fmt=fields_fmt, header=fields, comments='')
 
-    def colour_map(self, pv_input):
+    def colour_map(self, pv_input, logfile='pv_lawson.log'):
         lawson_script = str(os.path.join(os.path.split(__file__)[0], 'scripts',
                             'pv_lawson.py'))
         lawson_results_list = glob.glob(f'{self.csv_lawson.rstrip(".csv")}*.csv')
         for lawson_results in lawson_results_list:
-            subprocess.run(['pvpython', lawson_script, self.case,  lawson_results,
-                            pv_input])
+            subprocess.run(['pvpython', lawson_script, self.case, lawson_results,
+                            pv_input, logfile])
 
     @abstractmethod
     def wind_microclimate(self):

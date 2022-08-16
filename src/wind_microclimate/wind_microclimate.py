@@ -1,4 +1,4 @@
-import sys, logging
+import os, sys, logging
 import numpy as np
 from pathlib import Path
 
@@ -23,9 +23,16 @@ def main():
     input_dir = project_dir / 'input'
     output_dir = project_dir / 'output'
 
+    # create output_dir if not exists
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # logging directory
+    logfile = output_dir / 'wind_microclimate.log'
+    Path(os.path.dirname(logfile)).mkdir(parents=True, exist_ok=True)
+
     # logging configuration
-    logging.basicConfig(filename=output_dir / 'log' / 'wind_microclimate.log', 
-        level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    logging.basicConfig(filename=logfile, level=logging.INFO,
+                        format='%(asctime)s:%(levelname)s:%(message)s')
 
     # specific input paths
     input_xlsx = input_dir / 'input.xlsx'
@@ -44,9 +51,6 @@ def main():
     csv_vr = output_vr / 'VR.csv'
     csv_lawson = output_lawson / 'lawson.csv'
 
-    # create output_dir if not exists
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
     # wind angles to be assessed
     angles = np.linspace(inputs.angle_start, inputs.angle_end, 
                          num=inputs.angles, endpoint=False)
@@ -55,6 +59,9 @@ def main():
     post_process = any([inputs.vr_calculate, inputs.vr_pictures,
                        inputs.vr_receptors, inputs.lawson_calculate,
                        inputs.lawson_pictures, inputs.lawson_receptors])
+    if post_process:
+        # write paraview inputs to the file
+        inputs.write_pv_input(pv_input)
 
     #################### PRE-PROCESSING & CALCULATION #########################
 
@@ -62,7 +69,8 @@ def main():
         # create case object that will be used as a template
         # template steup depends on the provided wind profile type - csv or log
         if inputs.wind_profile == 'csv':
-            case_template = WindCSV(input_case, input_dir / inputs.csv_profile)
+            case_template = WindCSV(input_case, input_dir / inputs.csv_profile,
+                                    inputs.weibull_vref)
         else:
             wtr = EpwWeatherData()
             case_template = WindLogarithmic(input_case, inputs.rht_epw,
@@ -84,15 +92,18 @@ def main():
             sol.calculate_cfd()
 
             # initiate post-processing activities in the background
-            postproc_background(sol.case.foam_obj, sol.iterations, csv_vr, 
-                                vr_pictures=inputs.vr_pictures, 
-                                vr_receptors=inputs.vr_receptors)
+            p = postproc_background(sol.case, sol.iterations, csv_vr, output_vr,
+                pv_input, logfile, vr_pictures=inputs.vr_pictures, 
+                vr_receptors=inputs.vr_receptors)
 
     ########################### POST-PROCESSING ###############################
 
     if post_process:
-        # write paraview inputs to the file
-        inputs.write_pv_input(pv_input)
+        # wait for the postproc_background to finish
+        if inputs.run_cfd:
+            logging.info(f'Waiting until post-processing of {case.case_path} \
+                         finishes')
+            p.join()
 
         # create VR post-processing object
         vr = VR(output_solver, inputs.case, angles, csv_vr, output_vr)
@@ -112,7 +123,7 @@ def main():
         # velocity ratio results
         if inputs.vr_calculate or inputs.vr_pictures or inputs.vr_receptors:
             vr.generate_results(inputs.vr_calculate, inputs.vr_receptors,
-                                wtr.v_ref, pv_input)
+                                wtr.v_ref, pv_input, logfile=logfile)
 
         # calculate wind microclimate results
         if inputs.lawson_calculate:
@@ -124,7 +135,7 @@ def main():
 
         # generate colour maps with wind microclimate results
         if inputs.lawson_pictures:
-            lawson.colour_map(pv_input)
+            lawson.colour_map(pv_input, logfile=logfile)
 
 
 if __name__ == '__main__':

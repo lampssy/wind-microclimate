@@ -1,4 +1,4 @@
-import math
+import math, os
 import pandas as pd
 import numpy as np
 
@@ -19,16 +19,16 @@ class LawsonWeibull(LawsonLDDC):
         if safety:
             df_saf = [df for idx, df in enumerate(self.dfs_weibull) 
                       if 'annual' in csv_input[idx]][0]
-            self.dfs_weibull.remove(df_saf)
         for df_weibull, csv_in in zip(self.dfs_weibull, csv_input):
-            csv_lawson_season = f'{self.csv_lawson.rstrip(".csv")}_{csv_in}'
+            # TO DO: check if this is efficient
+            vr_gens = [(vr for vr in df_vr['VR'].tolist()) for df_vr in self.dfs_vr]
+            csv_lawson_season = f'{self.csv_lawson.rstrip(".csv")}_{os.path.split(csv_in)[1]}'
             self.p_exceed = np.zeros((len(self.dfs_vr[0]),
                 len(sum(self.thresh_ws.values(), []))), dtype=float)
             dfs = {'Comfort': df_weibull}
             if df_saf is not None:
                 dfs['Safety'] = df_saf
-            for idx, vrs in enumerate(zip(*self.vr_gens)):
-                #print(self.p_exceed[idx])
+            for idx, vrs in enumerate(zip(*vr_gens)):
                 self.p_exceed[idx] += self.exceedance_weibull(vrs, dfs)
             self.calculate_classes(csv_lawson_season)
 
@@ -43,5 +43,4 @@ class LawsonWeibull(LawsonLDDC):
                 df['weibull'] = df.apply(lambda row: weibull_f(threshold, row['p'], 
                     row['v'], row['k']), axis=1)
                 thresh_exceed[key].append(df['weibull'].sum())
-        #print(thresh_exceed)
         return sum(thresh_exceed.values(), [])

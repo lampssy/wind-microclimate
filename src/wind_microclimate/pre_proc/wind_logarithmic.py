@@ -12,16 +12,16 @@ from pre_proc.case import Case
 class WindLogarithmic(Case):
     
     def __init__(self, case_path: str, rht_epw: float, rht_site: float,
-                 vref_epw: float, angle=0):
+                 v_ref: float, angle=0):
         super().__init__(case_path, angle=angle)
         self.rht_epw = rht_epw
         self.rht_site = rht_site
-        self.vref_epw = vref_epw
+        self.v_ref = v_ref
 
     def setup_template(self, h_max=500):
         """ Prepare the template case with logarithmic wind profile setup """
         info(f'Yearly average wind speed from weather file is: \
-             {str(round(self.vref_epw, 2))} m/s')
+             {str(round(self.v_ref, 2))} m/s')
         # wind profile scaling (from measurement station to site location)
         self.vref_site = self.calc_vref(h_max=h_max)
         info(f'Reference velocity used for applying the atmospheric wind profile \
@@ -41,11 +41,11 @@ class WindLogarithmic(Case):
                         vref * math.log(z/rht) / math.log(z_ref/rht)
 
         ref_profile_ave = integrate(log_profile_func, 0, h_max, (self.rht_epw, 
-            self.vref_epw))/h_max
+            self.v_ref))/h_max
         error = ref_profile_ave
         i = 0
         while abs(error) > step:
-            vref_site = self.vref_epw - i * step
+            vref_site = self.v_ref - i * step
             integral_site = integrate(log_profile_func, (self.rht_site, 
                 vref_site))
             site_profile_ave = integral_site/h_max
@@ -65,7 +65,7 @@ class WindLogarithmic(Case):
         """ Write parameters of the logarithmic wind profiles for both measurement 
         station and site of interest to a file """
         with open(params_file, 'w') as f:
-            f.write(f'measurement station reference velocity: {self.vref_epw}')
+            f.write(f'measurement station reference velocity: {self.v_ref}')
             f.write(f'\nmeasurement station surface roughness: {self.rht_epw}')
             f.write(f'\nsite reference velocity: {self.vref_site}')
             f.write(f'\n sitesurface roughness: {self.rht_site}')
@@ -77,6 +77,6 @@ class WindLogarithmic(Case):
         wind_dir.replaceParameter('flowDir', f'({self.wind_vector[0]}',
             f'{self.wind_vector[1]} 0)')
 
-    def clone(self, clone_path, angle):
+    def return_clone(self, clone_path, angle):
         return WindLogarithmic(clone_path, self.rht_epw, self.rht_site,
-                               self.vref_epw, angle=angle)
+                               self.v_ref, angle=angle)

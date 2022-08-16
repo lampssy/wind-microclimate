@@ -26,13 +26,12 @@ class WeibullWeatherData(WeatherData):
             group by seasons and apply write_weibull per each group """
         data = pd.read_csv(self.data_file, usecols=[self.date_col, self.ws_col, 
             self.wd_col])
-        # fill NaNs with values from previous/next rows
-        data.fillna(method='bfill', inplace=True)
-        data.fillna(method='ffill', inplace=True)
+        # remove rows where there is no wind direction data
+        data.dropna(subset=[self.wd_col], inplace=True)
+        data.dropna(subset=[self.ws_col], inplace=True)
+        data = data[data[self.ws_col] != 0]
         # convert mph to m/s
         data[self.ws_col] = data[self.ws_col] * 0.44704
-        # replace 0 m/s wind speed with 0.1 m/s - 0 not possible in Weibull
-        data[self.ws_col] = data[self.ws_col].mask(data[self.ws_col]==0).fillna(0.1)
         # assign seasons to weather data
         df_seasons = self.group_seasons(data, self.date_col)
         # assign wind angle groups to wind directions in weather data
@@ -73,7 +72,7 @@ class WeibullWeatherData(WeatherData):
     def find_weibull(self, weibull_dir='.'):
         """ Return names of the csv files with Weibull parameters in the given 
             directory (current directory as a default). """
-        weibull_csv = glob.glob('weibull*.csv')
+        weibull_csv = glob.glob(os.path.join(weibull_dir,'weibull*.csv'))
         if len(weibull_csv) == 0:
             sys.exit(error('CSV files with Weibull factors not found'))
         else:
