@@ -1,11 +1,12 @@
-import os, sys, math
+import os, sys, math, shutil
 from pathlib import Path
 from abc import ABC, abstractmethod
 from PyFoam.RunDictionary.BoundaryDict import BoundaryDict
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
-from logging import info, error
+from PyFoam import FoamInformation
+from logging import info, error, warning
 
-from pre_proc.mesh import Mesh
+from wind_microclimate.pre_proc.mesh import Mesh
 
 
 class Case(ABC):
@@ -26,7 +27,9 @@ class Case(ABC):
             350: ['side-e', 'side-s'],
             360: ['side-s']
             }
+        self.incl_dir = os.path.join(self.case_path, '0', 'include')
         self.check_case()
+        self.check_version()
     
     def setup_case(self):
         """ Copy the template case and prepare it for calculation of current 
@@ -35,9 +38,9 @@ class Case(ABC):
             -math.cos(self.angle/180. * math.pi)]
         self.set_wind()
         outlets = self.choose_outlet()
-        info(f'Preparing case for {self.angle} deg wind direction... \
-            \nSetting patches: {outlets} to pressure outlet... \
-            \nFlow direction vector: {self.wind_vector}')
+        info(f'Preparing case for {self.angle} deg wind direction... ' +
+             f'\n\tSetting patches: {outlets} to pressure outlet... ' +
+             f'\n\tFlow direction vector: {self.wind_vector}')
         for outlet in outlets:
             self.set_outlet(outlet)
 
@@ -80,6 +83,9 @@ class Case(ABC):
         for key in sorted(self.outlet_dict):
             if self.angle <= key:
                 return self.outlet_dict[key]
+
+    def choose_file(self, file_path, suffix):
+        shutil.copyfile(f'{file_path}_{suffix}', file_path)
 
     def read_bc(self):
         """ Read boundary condition files stored in "0" directory """
@@ -129,6 +135,13 @@ class Case(ABC):
             Path(clone_path).mkdir(parents=True, exist_ok=True)
             self.foam_obj.cloneCase(clone_path)
         return self.return_clone(clone_path, angle)
+
+    def check_version(self):
+        self.version = float(FoamInformation.foamVersionString())
+        if not (5 <= self.version <= 8):
+            warning(f'This application has been tested with versions ' +
+                    f'5.0 - 8.0, your version (OpenFOAM {self.version}) '+
+                    'may not be compatible')
 
     @abstractmethod
     def return_clone(clone_path, angle):

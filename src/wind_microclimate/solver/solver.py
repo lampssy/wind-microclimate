@@ -3,7 +3,6 @@ from pathlib import Path
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
 from PyFoam.Applications.Decomposer import Decomposer
 from PyFoam.Applications.PlotRunner import PlotRunner
-from PyFoam import FoamInformation
 from logging import warning
 
 
@@ -37,7 +36,6 @@ class Solver:
     def decompose(self):
         """ Check if case decomposed to provided number of processors, 
             then decompose if not """
-        print(self.processors)
         if self.case.foam_obj.nrProcs() != self.processors:
             if self.case.foam_obj.nrProcs() != 0:
                 subprocess.run(['reconstructPar', '-case', self.case.case_path, 
@@ -64,14 +62,7 @@ class Solver:
 
     
     def is_calculated(self):
-        if self.case.foam_obj.getLast() != self.iterations:
+        if int(self.case.foam_obj.getLast()) != self.iterations:
             return False
         else:
             return True
-
-    def check_version(self):
-        self.version = FoamInformation.foamVersionString()
-        if not (5 <= float(self.version) <= 8):
-            warning(f'This application has been tested with versions 5.0 - 8.0, \
-                    your version (OpenFOAM {self.version}) may not be \
-                    compatible')

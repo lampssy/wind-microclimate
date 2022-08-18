@@ -6,7 +6,7 @@ from reliability.Other_functions import histogram
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from weather.weather import WeatherData
+from wind_microclimate.weather.weather import WeatherData
 
 
 class WeibullWeatherData(WeatherData):
@@ -51,7 +51,7 @@ class WeibullWeatherData(WeatherData):
         params = []
         # calculate Weibull parameters for each angle group
         gb_angle.apply(lambda x: params.append(self.weibull_params(
-            x['windspeed'].values.tolist(), n_records, x.name, season)))
+            x[self.ws_col].values.tolist(), n_records, x.name, season)))
         self.df_weibull = pd.DataFrame(params, columns=['Direction', 'p', 'c', 'k'])
         self.df_weibull.to_csv(self.output_dir / 'weibull_{0}.csv'.format(season),
                                index=False)
@@ -72,7 +72,7 @@ class WeibullWeatherData(WeatherData):
     def find_weibull(self, weibull_dir='.'):
         """ Return names of the csv files with Weibull parameters in the given 
             directory (current directory as a default). """
-        weibull_csv = glob.glob(os.path.join(weibull_dir,'weibull*.csv'))
+        weibull_csv = glob.glob(os.path.join(weibull_dir,'*weibull*.csv'))
         if len(weibull_csv) == 0:
             sys.exit(error('CSV files with Weibull factors not found'))
         else:

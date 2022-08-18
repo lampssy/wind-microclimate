@@ -174,9 +174,9 @@ def read_pv_settings(txt_path):
 
 
 # reads txt file with receptor locations into a 2D list
-def read_receptors(file_name):
+def read_receptors(csv_path):
     line_list = []
-    with open(file_name) as receptors:
+    with open(csv_path) as receptors:
         line_list = receptors.readlines()
     list_2d = []
     for c in range(len(line_list)):

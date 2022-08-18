@@ -2,18 +2,21 @@ import math, os
 import pandas as pd
 import numpy as np
 
-from post_proc.lawson import LawsonLDDC
+from wind_microclimate.post_proc.lawson import LawsonLDDC
 
 
 class LawsonWeibull(LawsonLDDC):
 
-    def __init__(self, case_dir, case, angles, weather, csv_vr, csv_lawson, receptors):
+    def __init__(self, case_dir, case, angles, weather, prep_weibull, csv_vr,
+                 csv_lawson, receptors):
         super().__init__(case_dir, case, angles, csv_vr, csv_lawson, receptors)
         self.weather = weather
+        self.prep_weibull = prep_weibull
 
-    def wind_microclimate(self, safety=True):
+    def wind_microclimate(self, safety=True, receptors=False):
         """ Read VR results and weather data, then run wind comfort calculation. """
-        self.weather.prepare_weibull()
+        if self.prep_weibull:
+            self.weather.prepare_weibull()
         csv_input = self.weather.find_weibull(weibull_dir=self.weather.output_dir)
         self.dfs_weibull = [pd.read_csv(csv, header=0) for csv in csv_input]
         if safety:
@@ -30,7 +33,7 @@ class LawsonWeibull(LawsonLDDC):
                 dfs['Safety'] = df_saf
             for idx, vrs in enumerate(zip(*vr_gens)):
                 self.p_exceed[idx] += self.exceedance_weibull(vrs, dfs)
-            self.calculate_classes(csv_lawson_season)
+            self.calculate_classes(csv_lawson_season, receptors=receptors)
 
     def exceedance_weibull(self, vrs, dfs_weibull):
         """ Calculate exceedance of given wind speed thresholds using Weibull 

@@ -1,28 +1,28 @@
 from pyepw.epw import EPW
-import sys, glob
+import sys, glob, os
 import pandas as pd
 from logging import error, exception
 
-from weather.weather import WeatherData
+from wind_microclimate.weather.weather import WeatherData
 
 
 class EpwWeatherData(WeatherData):
 
-    def __init__(self):
-        data_file = self.find_epw()
-        self.v_ref = self.mean_ws_epw()
+    def __init__(self, input_dir):
+        data_file = self.find_epw(input_dir)
         super().__init__(data_file)
+        self.v_ref = self.mean_ws_epw()
 
-    def find_epw(self):
+    def find_epw(self, input_dir):
         """ Return name of the epw file in the current directory """
-        epw_files = glob.glob('*.epw')
+        epw_files = glob.glob(os.path.join(input_dir, '*.epw'))
         if len(epw_files) == 0:
             sys.exit(error('\nThere is no EPW file in this directory\n'))
         elif len(epw_files) > 1:
-            sys.exit(error('\nThere is more than one EPW file in this directory, \
-                           please remove unnecessary files\n'))
+            sys.exit(error('\nThere is more than one EPW file in this directory, ' +
+                           'please remove unnecessary files\n'))
         else:
-            self.data_file = epw_files[0]
+            return epw_files[0]
 
     def epw_to_df(self):
         """ Return dataframe with wind speeds and directions from the epw file """
@@ -46,4 +46,4 @@ class EpwWeatherData(WeatherData):
         sum = 0
         for w in epw.weatherdata:
             sum += w.wind_speed
-        self.mean_ws = sum / 8760
+        return sum / 8760

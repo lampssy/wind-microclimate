@@ -1,4 +1,4 @@
-import os, subprocess, multiprocessing, re
+import os, subprocess, multiprocessing
 
 
 def postproc_background(case, it, path_vr, output_vr, pv_input, logfile,

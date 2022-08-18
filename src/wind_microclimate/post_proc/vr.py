@@ -19,27 +19,39 @@ class VR:
             csv_vr_angle = self.csv_vr.replace('.csv',
                 f'_{os.path.split(case_name)[1]}.csv')
 
+            # if not merged VR results already exist
+            if glob.glob(os.path.join(self.case, '*_VR_*.csv')):
+                if vr_calculate:
+                    # merge CSV files with VR data for surfaces
+                    self.merge_vr(case_name, csv_vr_angle)
+                if vr_receptors:
+                    # merge CSV files with VR data for receptors
+                    self.merge_vr(case_name, csv_vr_angle.replace('VR_',
+                                  'VR_receptors_'))
+
+            # if merged VR results don't exist
             if (not vr_receptors and not os.path.exists(csv_vr_angle)) \
                     or (vr_receptors and not os.path.exists(csv_vr_angle \
-                        .replace('.csv', '_receptors.csv'))):
+                        .replace('VR_', 'VR_receptors_'))):
                 vr_script = str(os.path.join(os.path.split(__file__)[0],
                                 'scripts', 'pv_vr.py'))
                 subprocess.run(['pvpython', vr_script, case_name, str(vref),
                                 self.output_dir, pv_input, logfile])
                 if vr_calculate:
                     # merge CSV files with VR data for surfaces
-                    self.merge_vr(case_name, csv_vr_angle)
+                    self.merge_vr(case_name, '_VR_', csv_vr_angle)
                 if vr_receptors:
                     # merge CSV files with VR data for receptors
-                    self.merge_vr(case_name, csv_vr_angle.replace('.csv',
-                                  '_receptors.csv'))
+                    self.merge_vr(case_name, '_VRreceptor_',
+                                  csv_vr_angle.replace('VR_','VR_receptors_'))
 
-    def merge_vr(self, case, path_merged):
+    def merge_vr(self, case, lookup_name, path_merged):
         """ Merge csv files with VR results above individual surfaces into one
             csv file """
-        csv_list = glob.glob(os.path.join(case, '_VR*.csv'))
+        csv_list = glob.glob(os.path.join(case, f'{lookup_name}*.csv'))
         dfs = [pd.read_csv(csv) for csv in csv_list]
-        names = [os.path.split(csv.strip('_VR.csv'))[1] for csv in csv_list]
+        names = [os.path.split(csv.strip(f'{lookup_name}.csv'))[1] 
+                 for csv in csv_list]
         for df, name in zip(dfs, names):
             df['Name'] = name
         df_concat = pd.concat(dfs)

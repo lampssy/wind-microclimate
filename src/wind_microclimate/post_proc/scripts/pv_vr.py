@@ -29,7 +29,7 @@ vr_calculate = settings['vr_calculate']
 vr_receptors = settings['vr_receptors']
 camera_position = [int(settings['x_camera']), int(settings['y_camera']), 500]
 z_ref = settings['h_ref']
-receptors_file = settings['receptor_coords']
+receptors_file = os.path.join(os.path.dirname(pv_input), settings['receptor_coords'])
 png_path = '%s/VR_%s.png' % (output_dir, os.path.split(case)[1])
 
 vtk_dir = os.listdir('%s/VTK/' % (case))
@@ -119,4 +119,4 @@ if vr_receptors:
     for p in probe_list:
         p.pv_obj.ProbeType.Center = p.coords
         p.create_sheet(spreadSheetView1)
-        ExportView('%s/_VR_%s.csv' % (case, p.name), view=spreadSheetView1)
+        ExportView('%s/_VRreceptor_%s.csv' % (case, p.name), view=spreadSheetView1)

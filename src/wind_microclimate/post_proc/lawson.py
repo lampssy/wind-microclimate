@@ -3,6 +3,7 @@ from pathlib import Path
 import string, os, subprocess, glob
 import numpy as np
 import pandas as pd
+from logging import info
 
 
 class Lawson(ABC):
@@ -14,7 +15,6 @@ class Lawson(ABC):
         self.csv_vr = str(csv_vr)
         self.csv_vr_receptors = f'{self.csv_vr.rstrip(".csv")}_receptors.csv'
         self.csv_lawson = str(csv_lawson)
-        self.receptors = receptors
         self.p_exceed = np.zeros((2, 2)) # hack
 
     def calculate(self, receptors=False):
@@ -31,9 +31,9 @@ class Lawson(ABC):
         self.dfs_vr = [pd.read_csv(csv_vr.replace
                        ('.csv', f'_{os.path.split(self.case)[1]}_{angle}.csv'),
                        header=0) for angle in self.angles]
-        self.wind_microclimate()
+        self.wind_microclimate(receptors=receptors)
 
-    def calculate_classes(self, csv_lawson):
+    def calculate_classes(self, csv_lawson, receptors=False):
         """ Calculate exceedance of all threshold wind speeds using given method 
             (epw or weibull), assign relevant wind comfort class to each point 
             and write the results to a file """
@@ -47,7 +47,7 @@ class Lawson(ABC):
                                     self.dfs_vr[0]['Points:1'].to_numpy(), 
                                     self.dfs_vr[0]['Points:2'].to_numpy())).T
         Path(os.path.dirname(csv_lawson)).mkdir(parents=True, exist_ok=True)
-        if not self.receptors:
+        if not receptors:
             fields = 'Class,Points:0,Points:1,Points:2'
             np.savetxt(csv_lawson, self.points_class, delimiter=',', 
                 fmt=['%d', '%f', '%f', '%f'], header=fields, comments='')
@@ -66,19 +66,19 @@ class Lawson(ABC):
 
     def receptors_table(self, csv_lawson):
         """ Generate csv file with wind comfort results for receptor locations """
-        print('Generating tabular wind comfort results for receptor locations...')
-        names = self.dfs_vr[0]['Name']
+        info('Generating tabular wind comfort results for receptor locations...')
+        names = [[name] for name in self.dfs_vr[0]['Name']]
         classes = np.delete(self.points_class, [1, 2, 3], 1)
         receptor_freq = np.concatenate((np.asarray(names), self.p_exceed*100), 
             axis=1)
         fields, fields_fmt = ['Name'], ['%s']
         class_dict = {}
+        n_thresholds = len(sum([val for val in self.thresh_ws.values()], []))
         # add columns for exceedance of wind speed thresholds for each comfort class
-        for key, value in zip(range(len(self.thresh_ws['Comfort']), 
-                list(string.ascii_lowercase))):
+        for key, value in zip(range(n_thresholds), list(string.ascii_lowercase)):
             class_dict[key] = value
             fields.append(value)
-            fields_fmt.append('%f')
+            fields_fmt.append('%s')
         fields.append('Calculated class')
         fields_fmt.append('%s')
         # 'Uncomfortable/unsafe' comfort class
@@ -87,15 +87,16 @@ class Lawson(ABC):
         receptor_table = np.concatenate((receptor_freq, classes), axis=1)
         csv_lawson_receptors = f'{csv_lawson.rstrip(".csv")}_receptors.csv'
         np.savetxt(csv_lawson_receptors, receptor_table, delimiter=',', 
-            fmt=fields_fmt, header=fields, comments='')
+            fmt=fields_fmt, header=','.join(fields), comments='')
 
     def colour_map(self, pv_input, logfile='pv_lawson.log'):
         lawson_script = str(os.path.join(os.path.split(__file__)[0], 'scripts',
                             'pv_lawson.py'))
         lawson_results_list = glob.glob(f'{self.csv_lawson.rstrip(".csv")}*.csv')
         for lawson_results in lawson_results_list:
-            subprocess.run(['pvpython', lawson_script, self.case, lawson_results,
-                            pv_input, logfile])
+            if 'receptors' not in lawson_results:
+                subprocess.run(['pvpython', lawson_script, self.case, lawson_results,
+                                pv_input, logfile])
 
     @abstractmethod
     def wind_microclimate(self):

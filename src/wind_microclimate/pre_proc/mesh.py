@@ -3,7 +3,7 @@ from PyFoam.Applications.Runner import Runner
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from logging import info, error
 
-from post_proc import helpers
+from wind_microclimate.post_proc import helpers
 
 
 class Mesh:

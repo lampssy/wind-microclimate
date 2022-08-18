@@ -2,23 +2,22 @@ import os, sys, logging
 import numpy as np
 from pathlib import Path
 
-from input.user_input import UserInput
-from weather.epw import EpwWeatherData
-from weather.weibull import WeibullWeatherData
-from pre_proc.wind_csv import WindCSV
-from pre_proc.wind_logarithmic import WindLogarithmic
-from solver.solver import Solver
-from post_proc.helpers import postproc_background
-from post_proc.vr import VR
-from post_proc.lawson_epw import LawsonEpw
-from post_proc.lawson_weibull import LawsonWeibull
+from wind_microclimate.input.user_input import UserInput
+from wind_microclimate.weather.epw import EpwWeatherData
+from wind_microclimate.weather.weibull import WeibullWeatherData
+from wind_microclimate.pre_proc.wind_csv import WindCSV
+from wind_microclimate.pre_proc.wind_logarithmic import WindLogarithmic
+from wind_microclimate.solver.solver import Solver
+from wind_microclimate.post_proc.helpers import postproc_background
+from wind_microclimate.post_proc.vr import VR
+from wind_microclimate.post_proc.lawson_epw import LawsonEpw
+from wind_microclimate.post_proc.lawson_weibull import LawsonWeibull
 
 
 def main():
     ########################## INPUT & PATH NAMES #############################
     
     project_dir = Path(sys.argv[1])
-    
     # main input/output paths
     input_dir = project_dir / 'input'
     output_dir = project_dir / 'output'
@@ -31,11 +30,13 @@ def main():
     Path(os.path.dirname(logfile)).mkdir(parents=True, exist_ok=True)
 
     # logging configuration
+    logging.getLogger(__name__)
     logging.basicConfig(filename=logfile, level=logging.INFO,
-                        format='%(asctime)s:%(levelname)s:%(message)s')
+                        format='%(asctime)s: %(levelname)s: %(message)s',
+                        datefmt="%Y-%m-%d %H:%M:%S")
 
     # specific input paths
-    input_xlsx = input_dir / 'input.xlsx'
+    input_xlsx = input_dir / 'INPUT.xlsx'
     inputs = UserInput(input_xlsx)
     input_case = input_dir / inputs.case
     hist_weather_data = input_dir / 'Heathrow 1997-01-01 to 2016-12-31.csv'
@@ -53,7 +54,7 @@ def main():
 
     # wind angles to be assessed
     angles = np.linspace(inputs.angle_start, inputs.angle_end, 
-                         num=inputs.angles, endpoint=False)
+                         num=inputs.angles, endpoint=True)
 
     # check if any post-processing action will be executed
     post_process = any([inputs.vr_calculate, inputs.vr_pictures,
@@ -70,17 +71,18 @@ def main():
         # template steup depends on the provided wind profile type - csv or log
         if inputs.wind_profile == 'csv':
             case_template = WindCSV(input_case, input_dir / inputs.csv_profile,
-                                    inputs.weibull_vref)
+                                    inputs.z_ground, inputs.weibull_vref)
         else:
-            wtr = EpwWeatherData()
+            wtr = EpwWeatherData(input_dir)
             case_template = WindLogarithmic(input_case, inputs.rht_epw,
-                                            inputs.rht_site, wtr.v_ref)
+                                            inputs.rht_site, inputs.z_ground,
+                                            wtr.v_ref)
 
         # convert Fluent msh file to OpenFoam mesh
         if inputs.convert_msh:
             case_template.prepare_mesh(input_dir)
 
-        case_template.setup_template()
+        case_template.setup_template(output_dir)
 
         for angle in angles:
             # clone template case to create case for current wind angle
@@ -101,8 +103,8 @@ def main():
     if post_process:
         # wait for the postproc_background to finish
         if inputs.run_cfd:
-            logging.info(f'Waiting until post-processing of {case.case_path} \
-                         finishes')
+            logging.info(f'Waiting until post-processing of {case.case_path}' +
+                         ' finishes')
             p.join()
 
         # create VR post-processing object
@@ -114,9 +116,11 @@ def main():
                                      angles, input_dir, plot=True,
                                      plot_dir=output_weather)
             lawson = LawsonWeibull(output_solver, inputs.case, angles, wtr,
-                                   csv_vr, csv_lawson, inputs.lawson_receptors)
-        if inputs.method == 'epw' and 'wtr' not in locals():
-            wtr = EpwWeatherData()
+                                   inputs.prep_weibull_params, csv_vr,
+                                   csv_lawson, inputs.lawson_receptors)
+        if inputs.method == 'epw':
+            if 'wtr' not in locals():
+                wtr = EpwWeatherData(input_dir)
             lawson = LawsonEpw(output_solver, inputs.case, angles, wtr, csv_vr,
                                csv_lawson, inputs.lawson_receptors)
 
@@ -139,4 +143,5 @@ def main():
 
 
 if __name__ == '__main__':
+    print('test')
     main()

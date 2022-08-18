@@ -25,14 +25,15 @@ class UserInput:
     def pre_proc_input(self):
         self.convert_msh = self.inputs.loc['convert_mesh', 'INPUT VALUE']
         self.wind_profile = self.inputs.loc['wind_profile', 'INPUT VALUE']
+        self.z_ground = self.inputs.loc['z_ground', 'INPUT VALUE']
         if self.wind_profile == 'csv':
             self.csv_profile = self.inputs.loc['csv_profile', 'INPUT VALUE'] 
         elif self.wind_profile == 'logarithmic':
-            self.rht_epw = self.inputs.loc['rht_epw', 'INPUT VALUE']
-            self.rht_site = self.inputs.loc['rht_site', 'INPUT VALUE']
+            self.rht_epw = float(self.inputs.loc['rht_epw', 'INPUT VALUE'])
+            self.rht_site = float(self.inputs.loc['rht_site', 'INPUT VALUE'])
         else:
-            error(f'{self.wind_profile} wind profile not valid, available \
-                  options are:\ncsv\nlogarithmic')
+            error(f'{self.wind_profile} wind profile not valid, available ' +
+                  'options are:\ncsv\nlogarithmic')
             sys.exit()
 
     def solver_input(self):
@@ -56,10 +57,11 @@ class UserInput:
                 self.vr_calculate or self.vr_pictures or self.vr_receptors:
             self.method = self.inputs.loc['lawson_method', 'INPUT VALUE']
             if self.method != 'epw' and self.method != 'weibull':
-                error(f'{self.method} method is not valid for wind \
-                      microclimate calculation')
+                error(f'{self.method} method is not valid for wind ' +
+                      'microclimate calculation')
                 sys.exit()
             if self.method == 'weibull':
+                self.prep_weibull_params = self.inputs.loc['prep_weibull_params', 'INPUT VALUE']
                 self.weibull_vref = self.inputs.loc['weibull_vref', 'INPUT VALUE']
         if self.lawson_pictures:
             self.bld_of_interest = self.inputs.loc['bld_of_interest', 'INPUT VALUE']
