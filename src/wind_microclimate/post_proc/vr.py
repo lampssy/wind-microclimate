@@ -50,7 +50,7 @@ class VR:
             csv file """
         csv_list = glob.glob(os.path.join(case, f'{lookup_name}*.csv'))
         dfs = [pd.read_csv(csv) for csv in csv_list]
-        names = [os.path.split(csv.strip(f'{lookup_name}.csv'))[1] 
+        names = [os.path.split(csv)[1].strip(f'{lookup_name}.csv') 
                  for csv in csv_list]
         for df, name in zip(dfs, names):
             df['Name'] = name
