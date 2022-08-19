@@ -2,6 +2,7 @@ import os, subprocess, glob
 import pandas as pd
 from pathlib import Path
 
+from wind_microclimate.post_proc.helpers import vr_script
 
 class VR:
 
@@ -31,10 +32,8 @@ class VR:
 
             # if merged VR results don't exist
             if (not vr_receptors and not os.path.exists(csv_vr_angle)) \
-                    or (vr_receptors and not os.path.exists(csv_vr_angle \
-                        .replace('VR_', 'VR_receptors_'))):
-                vr_script = str(os.path.join(os.path.split(__file__)[0],
-                                'scripts', 'pv_vr.py'))
+            or (vr_receptors and not os.path.exists(csv_vr_angle \
+                    .replace('VR_', 'VR_receptors_'))):
                 subprocess.run(['pvpython', vr_script, case_name, str(vref),
                                 self.output_dir, pv_input, logfile])
                 if vr_calculate:

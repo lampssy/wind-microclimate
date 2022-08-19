@@ -42,7 +42,6 @@ class Solver:
                     '-latestTime'])
             Decomposer(args=[self.case.case_path, self.processors, '--clear'])
 
-
     def set_iter(self):
         conDict = ParsedParameterFile(os.path.join(self.case.case_path, 'system', 
             'controlDict'))
@@ -59,7 +58,6 @@ class Solver:
                 f'residuals_{self.case.angle}.png')])
         except Exception:
             warning('Image with residuals was not generated')
-
     
     def is_calculated(self):
         if int(self.case.foam_obj.getLast()) != self.iterations:
